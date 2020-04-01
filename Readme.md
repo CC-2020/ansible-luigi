@@ -1,381 +1,113 @@
-## Ansible
+# Tarea Cloud Computing - Asible
 
-### Crear un fichero de inventario: hosts-dev
 
+- Crear una máquina virtual
+- Instalar Ansible
+- Crear dos máquinas virtuales
+- Crear un inventario con esas máquinas
+- Crear un PlayBook para instalar Apache, PHP y MySQL
+
+
+## Instalar Ansible sobre la maquina master
+
+
+```bash
+$ sudo apt update
+$ sudo apt install software-properties-common
+$ sudo apt-add-repository ppa:ansible/ansible
+$ sudo apt install ansible
 ```
+
+## Crear dos máquinas virtuales y configuración
+
+Desde la plataforma __Google GCP__ - __Compute Engine__, se han creado dos máquinas, en la red de default : 
+
+- __client1-tarea__: ubuntu18.04, us-central1-a, private ip: 10.128.*.*, public ip: 34.68.181.**
+- __client2-tarea__: debian-9, us-central1-a, private ip: 10.128.*.* , public ip: 35.239.24.***
+
+## Creación de la clave SSH
+
+Desde la máquina master, procedemos con la creación de la clave SSH, que nos permitirá de controlar las máquinas __client1-tarea__, __client2-tarea__.
+
+```bash
+$ ssh-keygen
+```
+enter tres veces, por simplicidad, sin establecer una contraseña; entonces creamos la clave pública y la clave privada.
+Desde cat, ver y copiar la clave pública:
+
+```bash
+$ cd .ssh
+$ cat id_rsa.pub
+``` 
+
+Desde __Google Cloud Platform__ -> __Compute Engine__ -> __Instancias__ -> hacer clic en una de las dos instancias creadas anteriormente, p.e. __cliente1-tarea__, luego en "__editar__", en "__clave SSH__", pegamos la clave pública de la máquina master.
+
+Lo mismo para la otra maquina.
+
+Podemos verificar la conexión / configuración correcta, intentando conectar, desde la máquina master, a la máquina client1-tarea o client2-tarea:
+
+
+```bash
+$ ssh 34.68.181.**
+``` 
+
+## Crear un inventario con esas máquinas
+
+Podemos modificar el fichero __/etc/ansible/hosts__ o crear un archivo __"hosts-dev"__, con:
+
+```bash
 # Por defecto /etc/ansible/hosts
-# Podemos usar otro con -i <inventario>
-
 # hosts-dev
 
 [webservers]
-3.228.178.191
-3.232.218.105
-
-
-[loadbalancer]
-34.235.19.16
+webapp1 ansible_host=34.68.181.**
+webapp2 ansible_host=35.239.24.***
 
 [local]
 control ansible_connection=local
-```
-
-### Listar los hosts
-
-```
-$ ansible all -i hosts-dev --list-hosts
-  hosts (4):
-    control
-    3.228.178.191
-    3.232.218.105
-    34.235.19.16
-```
-
-### Configuración de Ansible
-
-La configuración se busca en el siguiente orden:
-
-- Variable de entorno: ANSIBLE_CONFIG
-- fichero ansible.cfg en el directorio actual
-- fichero ~/.ansible.cfg (en el directorio home)
-- Fichero /etc/ansible/ansible.cfg
-
-Crear el fichero ansible.cfg
-
-```
-# ansible.cfg
-
-[defaults]
-inventory = ./hosts-env
-```
-
-```
-NOTE: Windows WSL: So we cant have a configuration file which can be written by everyone, so you can set permission as 755 to /home/ansible-user/ansible directory and it should work like below example :
-
-ansible-user@IND004513:~/ansible$ sudo chmod 755 /home/ansible-user/ansible/
-
-ansible-user@IND004513:~/ansible$ ansible --list-hosts all
-```
-
-### Asignando nombre (Hostname DNS) a los hosts
-
-```
-# hosts-dev
-
-[webservers]
-webapp1 ansible_host=3.228.178.191
-webapp2 ansible_host=3.232.218.105
+``` 
 
 
-[loadbalancer]
-weblb ansible_host=34.235.19.16
+aquí indicamos la dirección pública de las dos máquinas que controlaremos.
 
-[local]
-control ansible_connection=local
-```
-Es posible utilizar patrones para seleccionar los hosts
-
-```
-$ ansible web* --list-hosts
-  hosts (3):
-    webapp1
-    webapp2
-    weblb
-```
-
-### Recursos
-
-RESOURCES
-[Install the Control Machine](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-the-control-machine)
-[Working With Dynamic Inventory](https://docs.ansible.com/ansible/latest/user_guide/intro_dynamic_inventory.html)
-[Ansible Inventory File](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html)
-[Ansible Configuration Settings](https://docs.ansible.com/ansible/latest/reference_appendices/config.html#ansible-configuration-settings)
-[Working with Patterns](https://docs.ansible.com/ansible/latest/user_guide/intro_patterns.html)
+Podemos verificar la conexión / configuración correcta haciendo un ping:
 
 
-## Tareas Ansible
+```bash
+$ ansible webservers -m ping
+``` 
 
-Las tareas en la forma de enviar comandos adhoc a las máquinas del inventario. La sintaxis:
-
-```
-$ ansible <options> <host-pattern>
-```
-
-```
-$ ansible -m ping all
-    ^      ^   ^   ^
-    '      '   '   '
-  command  '   '   '
-         flag  '   '
-        módulo '   '
-               '   '
-           nombre  '
-           módulo  '
-               Inventario 
-```
-```
-$ ansible -a "uname" all
-    ^      ^   ^      ^
-    '      '   '      '
-  ansible  '   '      '
-         flag  '      '
-       command '      '
-               '      '
-            comando   '
-                      '
-                  Inventario 
-```
-Ejemplos
-
-```
-# Ejemplo ejecución de un comando correcto (tb se puede usar -m shell -a "uname" all)
-$ ansible -a "uname" all
-control | SUCCESS | rc=0 >>
-Linux
-
-webapp2 | SUCCESS | rc=0 >>
-Linux
-
-weblb | SUCCESS | rc=0 >>
-Linux
-
-webapp1 | SUCCESS | rc=0 >>
-Linux
-```
-```
-# Ejemplo ejecución de un comando errónea (tb se puede usar -m command -a "false" \!local )
-$ ansible -a "false" \!local
-webapp1 | FAILED | rc=1 >>
-non-zero return code
-
-webapp2 | FAILED | rc=1 >>
-non-zero return code
-
-weblb | FAILED | rc=1 >>
-non-zero return code
-```
+Asì veremos el mensaje con la respuesta de las dos máquinas.
 
 
-### Recursos
+## Crear un PlayBook para instalar Apache, PHP y MySQL
 
-- Comando ansible: https://docs.ansible.com/ansible/latest/cli/ansible.html
-- índice de módulos de ansible: https://docs.ansible.com/ansible/latest/modules/modules_by_category.html
+- Creemos el archivo __apache_php_mysql.yml__ (desde CLI o cloud shell editor):
 
 
-## Playbooks
-Documentación: https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html
-
-Playbooks (libro de jugadas, lista de la compra o receta) es un script que incluye las intrucciones para gestionar la configuración de nuestros sistemas remotos
-
-Permiten crear infraestructura como código y gestionar la configuración.
-Las tareas se ejecutan en el orden establecido y pueden ejecutarse de forma síncrona o asíncrona
-
-Utilizan sintasis Yaml
-Están compuesto por uno o más plays, cuyo objetivo es realizar alguna tarea, mediant eun módulo ansible, en los host detallados en el inventario.
-Por ejemplo, el comando:
-
-```
-$ ansible -m ping all
-```
-En un playbook sería:
-
-```
-# ping.yml
+```bash
 ---
-  - hosts: all
-    task:
-    - name: Ping a todos los servidores
-      action: ping
+- hosts: webservers
+  tasks:
+    - name: apache_inst
+      become: true
+      apt: name=apache2
+    - name: mysql_inst
+      become: true
+      apt: name=mysql-server
+    - name: php_inst
+      become: true
+      apt: name=php
+    - name: php-mysql_inst
+      become: true
+      apt: name=php-mysql
 ```
 
-Para ejecutar un playbook se utiliza el comando:
 
-```
-$ ansible-playbook ping.yml
-```
+- Por último, ejecutar : 
 
-### Tareas a realizar
-
-- Gestión de paquetes: con el módulo correspondiente a la distribución linux instalada
-- Configurar infraestructura: copiar (con el módulo copy) y sincronizar ficheros (con el módulo synchronize).
-- Gestionar servicios: configurarlo con el módulo lineinfile e iniciarlos, pararlos o restaurarlo con el módulo service
-
-- Gestión de paquetes
-
-```
-# yum-update.yml
-
----
-  - hosts: webservers:loadbalancer
-    become: true
-    tasks:
-      - name: Updating yum packages
-        yum: name=* state=latest
+```bash
+$ ansible-playbook apache_php_mysql.yml
 ```
 
-- Gestionar servicios
-
-```
-# install-services.yml
-
----
-  - hosts: loadbalancer
-    become: true
-    tasks:
-      - name: Installing apache
-        yum: name=httpd state=present
-      - name: Ensure apache starts
-        service: name=httpd state=started enabled=yes
-
-  - hosts: webservers
-    become: true
-    tasks:
-      - name: Installing services
-        yum:
-          name: 
-            - httpd
-            - php
-          state: present
-      - name: Ensure apache starts
-        service: name=httpd state=started enabled=yes
-```
-
-- Instanlación y configuración de la APlicación
-
-```
-# setup-app.yml
-
----
-  - hosts: webservers
-    become: true
-    tasks:
-      - name: Upload application file
-        copy:
-          src: app/index.php
-          dest: /var/www/html
-          mode: 0755
-      
-      - name: Configure php.ini file
-        lineinfile:
-          path: /etc/php.ini
-          regexp: ^short_open_tag
-          line: 'short_open_tag=On'
-
-      - name: restart apache
-        service: name=httpd state=restarted
-```
-
-Es posible definir un handler para que apache se restaure si hay algún cambio en la configuración:
-
-```
-# setup-app.yml
-
----
-  - hosts: webservers
-    become: true
-    tasks:
-      - name: Upload application file
-        copy:
-          src: app/index.php
-          dest: /var/www/html
-          mode: 0755
-      
-      - name: Configure php.ini file
-        lineinfile:
-          path: /etc/php.ini
-          regexp: ^short_open_tag
-          line: 'short_open_tag=On'
-        notify: restart apache
-    handlers:
-      - name: restart apache
-        service: name=httpd state=restarted
-```
-
-- Configuración del balanceador
-
-```
-  # setup-lb.yml
----
-  - hosts: loadbalancer
-    become: true
-    tasks:
-      - name: Creating template
-        template:
-          src: config/lb-config.j2
-          dest:  /etc/httpd/conf.d/lb.conf
-          owner: bin
-          group: wheel
-          mode: 064
-        notify: restart httpd
-    
-    handlers:
-      - name: restart httpd
-        service:
-          name: httpd
-          state: restarted
-```
-
-El fichero de configuración sería: 
-
-```
-ProxyRequests off
-<Proxy balancer://webcluster >
-    BalancerMember http://3.228.178.191
-    BalancerMember http://3.232.218.105
-    ProxySet lbmethod=byrequests
-</Proxy>
-
-# Optional
-<Location /balancer-manager>
-  SetHandler balancer-manager
-</Location>
-
-ProxyPass /balancer-manager !
-ProxyPass / balancer://webcluster/
-```
-
-Se podría utilizar Jinja para el contenido
-https://jinja.palletsprojects.com/en/2.11.x/
-
-```
-ProxyRequests off
-<Proxy balancer://webcluster >
-  {% for hosts in groups['webservers'] %}
-    BalancerMember http://{{hostvars[hosts]['ansible_host']}}
-  {% endfor %}
-    ProxySet lbmethod=byrequests
-</Proxy>
-
-# Optional
-<Location /balancer-manager>
-  SetHandler balancer-manager
-</Location>
-
-ProxyPass /balancer-manager !
-ProxyPass / balancer://webcluster/
-```
-
-### Englobar los playbooks en uno
-https://docs.ansible.com/ansible/latest/modules/import_playbook_module.html
-
-```
-# all-playbooks.yml
----
-  - import_playbook: yum-update.yml
-  - import_playbook: install-services.yml
-  - import_playbook: setup-app.yml
-  - import_playbook: setup-lb.yml
-```
-
-### Crear un playbook para comprobar el estado de los servicios
-
-```
-# check-status.yml
----
-  - hosts: webservers:loadbalancer
-    become: true
-    tasks:
-      - name: Check status of apache
-        command: service httpd status
-```
-
+Así, habremos instalado Apache, PHP y MYSQL sobre las dos máquinas.

@@ -1,0 +1,15 @@
+---
+- hosts: webservers
+  tasks:
+    - name: apache_inst
+      become: true
+      apt: name=apache2
+    - name: mysql_inst
+      become: true
+      apt: name=mysql-server
+    - name: php_inst
+      become: true
+      apt: name=php
+    - name: php-mysql_inst
+      become: true
+      apt: name=php-mysql
