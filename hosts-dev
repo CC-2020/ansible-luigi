@@ -2,8 +2,8 @@
 # hosts-dev
 
 [webservers]
-webapp1 ansible_host=34.68.181.24
-webapp2 ansible_host=35.239.24.143
+webapp1 ansible_host=34.68.181.**
+webapp2 ansible_host=35.239.24.***
 
 [local]
 control ansible_connection=local
